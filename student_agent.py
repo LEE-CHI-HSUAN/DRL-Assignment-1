@@ -42,6 +42,5 @@ def get_action(obs):
     print(state)
 
     # return interactive()
-    # last_action = gp_play(state)
     last_action = dqn_play(state)
     return last_action

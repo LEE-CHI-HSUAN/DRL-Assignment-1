@@ -46,3 +46,47 @@ def get_state_tensor(
 
     state = (*station_dirs, *kioku, *(state[10:14]))
     return torch.tensor([state], dtype=torch.float32, device=device)
+
+
+def env_jump_before_pick(env, taxi_memory, k=1):
+    """
+    k=0-3
+    """
+    if k == 0:
+        return env.get_state()
+    dest_idx = env.stations.index(env.destination)
+    locations_idx = list(range(4))  # all
+    locations_idx.remove(env.stations.index(env.passenger_loc))  # remove goal
+    locations_idx = random.sample(locations_idx, k)  # shrink to k
+
+    env.taxi_pos = env.stations[random.choice(locations_idx)]
+
+    for idx in locations_idx:
+        taxi_memory.visit_mask[idx] = 0
+    if dest_idx in locations_idx:
+        taxi_memory.destination_mask[dest_idx] = 1
+    return env.get_state()
+
+
+def env_jump_after_pick(env, taxi_memory, k=1):
+    """
+    k=0-3
+    """
+    if k == 0:
+        env.get_state()
+    dest_idx = env.stations.index(env.destination)
+    passenger_idx = env.stations.index(env.passenger_loc)
+    locations_idx = list(range(4))  # all
+    locations_idx.remove(passenger_idx)  # remove passenger and add it back later
+    locations_idx = random.sample(locations_idx, k - 1)  # shrink to k-1
+    locations_idx.append(passenger_idx)
+
+    env.taxi_pos = env.passenger_loc
+    env.step(4)
+
+    taxi_memory.passenger_picked_up = True
+    for idx in locations_idx:
+        taxi_memory.visit_mask[idx] = 0
+    if dest_idx in locations_idx:
+        taxi_memory.destination_mask[dest_idx] = 1
+    return env.get_state()
