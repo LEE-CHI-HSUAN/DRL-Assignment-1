@@ -1,18 +1,47 @@
 # Remember to adjust your student ID in meta.xml
-import numpy as np
-import pickle
-import random
-import gym
+
+import torch
+from TaxiMemory import TaxiMemory
+from utils import get_state_tensor
+from dqn_net import DQN
+
+device = torch.device(
+    "cuda:1"
+    if torch.cuda.is_available()
+    else "mps" if torch.backends.mps.is_available() else "cpu"
+)
+
+
+def interactive():
+    action = int(input("action(0-5): "))
+    return action
+
+
+policy_net = DQN(23, 6).to(device)
+policy_net.load_state_dict(torch.load("DQN.pt"))
+
+
+def dqn_play(state):
+    with torch.no_grad():
+        action = policy_net(state).max(1).indices.item()
+        return action
+
+
+taxi_memory = TaxiMemory()
+last_action = None
+
 
 def get_action(obs):
-    
-    # TODO: Train your own agent
-    # HINT: If you're using a Q-table, consider designing a custom key based on `obs` to store useful information.
-    # NOTE: Keep in mind that your Q-table may not cover all possible states in the testing environment.
-    #       To prevent crashes, implement a fallback strategy for missing keys. 
-    #       Otherwise, even if your agent performs well in training, it may fail during testing.
+    global last_action
 
+    if last_action is None:
+        taxi_memory.reset(obs)
+        state = get_state_tensor(obs, taxi_memory, device)
+    else:
+        state = get_state_tensor(obs, taxi_memory, device, last_action)
+    print(state)
 
-    return random.choice([0, 1, 2, 3, 4, 5]) # Choose a random action
-    # You can submit this random agent to evaluate the performance of a purely random strategy.
-
+    # return interactive()
+    # last_action = gp_play(state)
+    last_action = dqn_play(state)
+    return last_action
