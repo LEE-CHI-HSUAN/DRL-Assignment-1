@@ -14,7 +14,7 @@ def interactive():
 
 
 policy_net = DQN(23, 6).to(device)
-policy_net.load_state_dict(torch.load("DQN.pt"))
+policy_net.load_state_dict(torch.load("DQN.pt", weights_only=True))
 
 
 def dqn_play(state):
